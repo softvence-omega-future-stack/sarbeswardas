@@ -29,7 +29,6 @@ const Dropdown = () => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  console.log("activeMenu", activeMenu);
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (

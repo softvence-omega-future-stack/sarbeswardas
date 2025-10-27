@@ -26,21 +26,28 @@ const baseQuery = fetchBaseQuery({
   },
 });
 
+// Extra options type for skipToast
+interface BaseQueryExtraOptions {
+  skipToast?: boolean;
+}
+
 // Fully typed wrapper for toast notifications
 const baseQueryWithToast = async (
   args: string | FetchArgs,
   api: BaseQueryApi,
-  extraOptions: object
+  extraOptions: BaseQueryExtraOptions = {}
 ) => {
   const result = await baseQuery(args, api, extraOptions);
 
-  // Determine HTTP method
   const method =
     typeof args === "object" && "method" in args
       ? args.method?.toUpperCase()
       : "GET";
 
+  const skipToast = extraOptions.skipToast ?? false;
+
   if (
+    !skipToast &&
     result.data &&
     ["POST", "PUT", "DELETE", "PATCH"].includes(method ?? "")
   ) {
@@ -49,6 +56,7 @@ const baseQueryWithToast = async (
   }
 
   if (
+    !skipToast &&
     result.error &&
     ["POST", "PUT", "DELETE", "PATCH"].includes(method ?? "")
   ) {
@@ -62,9 +70,10 @@ const baseQueryWithToast = async (
   return result;
 };
 
+// Base API
 export const baseApi = createApi({
   reducerPath: "baseApi",
   baseQuery: baseQueryWithToast,
   endpoints: () => ({}),
-  tagTypes: ["Profile"],
+  tagTypes: ["Profile", "Session"],
 });

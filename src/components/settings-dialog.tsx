@@ -1,5 +1,8 @@
 "use client";
-import { useLogoutFromAllDevicesMutation } from "@/store/api/authApi";
+import {
+  useDeleteAccountMutation,
+  useLogoutFromAllDevicesMutation,
+} from "@/store/api/authApi";
 import { removeToken } from "@/store/api/AuthState";
 import {
   useGetProfileQuery,
@@ -46,10 +49,15 @@ interface SettingsDialogProps {
   handleClose: () => void;
 }
 
+const inputClass = {
+  input:
+    "w-full px-4 py-3 text-sm leading-[22px] rounded-lg  border border-[#DFE3E8] dark:border-[#212B36] bg-[#F4F6F8] dark:bg-[#161C24] text-[#919EAB] dark:text-[#637381]  cursor-pointer transition outline-none",
+  label: "text-sm leading-[22px] text-[#212B36] dark:text-[#DFE3E8] mb-1 block",
+  error: "text-red-500 text-xs mt-1",
+};
 const SettingsDialog: FC<SettingsDialogProps> = ({ handleClose }) => {
   const [tab, setTab] = useState("account");
   const [editFullName, setEditFullName] = useState(false);
-  const [editPassword, setEditPassword] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
 
   const {
@@ -65,7 +73,6 @@ const SettingsDialog: FC<SettingsDialogProps> = ({ handleClose }) => {
   });
 
   const handleEditClick = () => setEditFullName(!editFullName);
-  const handlePasswordClick = () => setEditPassword(!editPassword);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -84,14 +91,6 @@ const SettingsDialog: FC<SettingsDialogProps> = ({ handleClose }) => {
     await logoutFromAllDevices();
     dispatch(removeToken());
     router.push("/login");
-  };
-
-  const inputClass = {
-    input:
-      "w-full px-4 py-3 text-sm leading-[22px] rounded-lg  border border-[#DFE3E8] dark:border-[#212B36] bg-[#F4F6F8] dark:bg-[#161C24] text-[#919EAB] dark:text-[#637381]  cursor-pointer transition outline-none",
-    label:
-      "text-sm leading-[22px] text-[#212B36] dark:text-[#DFE3E8] mb-1 block",
-    error: "text-red-500 text-xs mt-1",
   };
 
   const [updateProfileImage] = useUpdateProfileImageMutation();
@@ -121,6 +120,17 @@ const SettingsDialog: FC<SettingsDialogProps> = ({ handleClose }) => {
   };
 
   const { data: profile } = useGetProfileQuery();
+
+  const [deleteAccount, { isLoading: isDeleting }] = useDeleteAccountMutation();
+  const handleDeleteAccount = async () => {
+    try {
+      await deleteAccount().unwrap();
+      dispatch(removeToken());
+      router.push("/login");
+    } catch (error) {
+      console.error("Failed to delete account:", error);
+    }
+  };
 
   return (
     <div>
@@ -222,11 +232,20 @@ const SettingsDialog: FC<SettingsDialogProps> = ({ handleClose }) => {
                 <div className="flex items-center justify-between">
                   <CommonHeader>Delete account</CommonHeader>
                   <CommonButton
+                    onClick={handleDeleteAccount}
+                    disabled={isDeleting}
                     type="button"
                     className="!border-[#FF4842]"
                     variant="outline"
                   >
-                    Delete Account
+                    {isDeleting ? (
+                      <ButtonWithLoading
+                        title="Deleting..."
+                        textColor="!text-[#FF4842]"
+                      />
+                    ) : (
+                      "Delete Account"
+                    )}
                   </CommonButton>
                 </div>
 
@@ -252,28 +271,6 @@ const SettingsDialog: FC<SettingsDialogProps> = ({ handleClose }) => {
 
             {tab === "security" && (
               <div>
-                <div className="flex items-center justify-between">
-                  <CommonHeader>Password:</CommonHeader>
-                  <div className="flex items-center gap-2">
-                    {editPassword ? (
-                      <input
-                        type="password"
-                        className={inputClass.input}
-                        placeholder="Type new Password"
-                      />
-                    ) : (
-                      <CommonHeader size="gray">********</CommonHeader>
-                    )}
-                    <button
-                      type="button"
-                      onClick={handlePasswordClick}
-                      className="text-xl cursor-pointer"
-                    >
-                      <CiEdit />
-                    </button>
-                  </div>
-                </div>
-
                 <Separator marginY="my-4.5" />
 
                 <div className="flex items-center justify-between">

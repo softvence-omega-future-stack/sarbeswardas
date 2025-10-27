@@ -20,7 +20,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { removeToken } from "@/store/api/AuthState";
+import { newQuery } from "@/store/api/chatSlice";
 import { useGetProfileQuery } from "@/store/api/profileApi";
+import { AppDispatch } from "@/store/store";
 import { useTheme } from "next-themes";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -36,6 +38,7 @@ import DeleteDialog from "./delete-dialog";
 import RenameDialog from "./rename-dialog";
 import ShareDialog from "./share-dialog";
 import SubscriptionDropdownItem from "./subscription-dialog";
+
 export function AppSidebar() {
   const { theme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
@@ -66,6 +69,11 @@ export function AppSidebar() {
   };
 
   const { data: profile } = useGetProfileQuery();
+  const newChat: AppDispatch = useDispatch();
+
+  const handleNewQuery = () => {
+    newChat(newQuery());
+  };
   return (
     <>
       <Sidebar
@@ -117,6 +125,7 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <div className=" flex flex-col gap-6">
                 <CommonButton
+                  onClick={handleNewQuery}
                   size="lg"
                   className="w-full flex  items-center justify-center gap-2"
                 >

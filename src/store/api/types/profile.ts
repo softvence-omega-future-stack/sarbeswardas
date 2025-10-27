@@ -13,6 +13,6 @@ export interface UserProfile {
 export interface GetProfileResponse {
   success: boolean;
   message: string;
-  meta: any | null; // can be refined if needed
+  meta: null;
   data: UserProfile;
 }

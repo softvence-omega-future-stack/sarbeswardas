@@ -27,8 +27,6 @@ interface ChangePasswordDialogProps {
 const ChangePasswordDialog: React.FC<ChangePasswordDialogProps> = ({
   handleClose,
 }) => {
-  const [open, setOpen] = React.useState(false);
-
   const {
     register,
     handleSubmit,
@@ -49,7 +47,7 @@ const ChangePasswordDialog: React.FC<ChangePasswordDialogProps> = ({
       await changePassword(apiBody);
 
       reset();
-      setOpen(false);
+      handleClose();
     } catch (error) {
       console.error("Failed to change password:", error);
     }

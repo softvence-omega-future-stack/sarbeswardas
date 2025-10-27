@@ -52,24 +52,6 @@ const PersonalizationDialog: React.FC<Props> = ({ handleClose }) => {
             </Select>
           </div>
 
-          {/* Language Selector */}
-          <div className="flex items-center justify-between">
-            <CommonHeader>Language</CommonHeader>
-            <Select defaultValue="en">
-              <SelectTrigger className="w-[140px] cursor-pointer text-white">
-                <SelectValue placeholder="Select Language" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem className=" cursor-pointer" value="en">
-                  English
-                </SelectItem>
-                <SelectItem className=" cursor-pointer" value="bn">
-                  Bangla
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
           <AlertBox title="This will change your whole interface." />
 
           {/* Buttons */}
