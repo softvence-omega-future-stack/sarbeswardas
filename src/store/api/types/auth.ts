@@ -11,6 +11,12 @@ export interface LoginResponse {
     accessToken: string;
   };
 }
+//google login
+export interface GoogleLogin {
+  email: string;
+  provider: string;
+  fullName: string;
+}
 
 export interface SignUp {
   fullName: string;
@@ -38,20 +44,27 @@ export interface AiSendPrompt {
   contentType: "text" | "image";
 }
 
-export interface AiSessionItem {
+// all session
+export interface Session {
   sessionId: string;
+  title: string;
   messageCount: number;
-  lastMessageAt: string;
-  createdAt: string;
-  updatedAt: string;
+  lastMessageAt: string; // ISO date string
+  createdAt: string; // ISO date string
+  updatedAt: string; // ISO date string
 }
 
-export interface GetAllSessionResponse {
-  sessions: AiSessionItem[];
+export interface SessionsData {
+  sessions: Session[];
   total: number;
   limit: number;
   skip: number;
 }
+
+export interface AllSessionResponse {
+  data: SessionsData;
+}
+
 // single ai session
 
 export interface SessionHistoryResponse {
@@ -114,4 +127,10 @@ export interface SubscribePlanResponse {
   data: {
     url: string;
   };
+}
+
+// session update
+export interface UpdateSessionPayload {
+  sessionId: string;
+  newTitle: string;
 }

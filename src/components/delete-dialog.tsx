@@ -1,25 +1,28 @@
-"use client"
-import React, { useState } from "react"
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog"
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { Trash2 } from "lucide-react"
-import Image from "next/image"
-import icon from "../../public/images/logout-icon.png"
+"use client";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { useDeleteSessionMutation } from "@/store/api/AIApi";
+import { Trash2 } from "lucide-react";
+import Image from "next/image";
+import React, { useState } from "react";
+import icon from "../../public/images/logout-icon.png";
+import ButtonWithLoading from "./common/custom/ButtonWithLoading";
 
-const DeleteDialog = () => {
-  const [open, setOpen] = useState(false)
+interface DeleteDialogProps {
+  sessionId: string;
+}
+const DeleteDialog: React.FC<DeleteDialogProps> = ({ sessionId }) => {
+  const [open, setOpen] = useState(false);
 
-  const handleDelete = () => {
-    console.log("Chat deleted ✅")
-    setOpen(false)
-  }
+  const [deleteSession, { isLoading }] = useDeleteSessionMutation();
+  const handleDelete = async () => {
+    await deleteSession(sessionId);
+    setOpen(false);
+  };
 
-  const handleCancel = () => {
-    setOpen(false)
-  }
+  const handleCancel = async () => {
+    setOpen(false);
+  };
 
   return (
     <div>
@@ -45,40 +48,39 @@ const DeleteDialog = () => {
             </span>
           </div>
 
-          {/* Buttons */}
           <div className="flex justify-end gap-3">
             <button
               onClick={handleCancel}
               className="px-4 py-2 rounded-md border 
               bg-gray-200 text-gray-800 hover:bg-gray-300
-              dark:bg-[#161C24] dark:text-gray-200 dark:border-gray-600 dark:hover:bg-[#1f2730]"
+              dark:bg-[#161C24] dark:text-gray-200 dark:border-gray-600 dark:hover:bg-[#1f2730] cursor-pointer"
             >
               Cancel
             </button>
             <button
               onClick={handleDelete}
-              className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700"
+              disabled={isLoading}
+              className="px-4 py-2 cursor-pointer rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Delete
+              {isLoading ? <ButtonWithLoading title="Delete..." /> : "Delete"}
             </button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Dropdown Item */}
       <DropdownMenuItem
         onClick={(e) => {
-          e.preventDefault()
-          setOpen(true)
+          e.preventDefault();
+          setOpen(true);
         }}
         className="flex items-center gap-2 text-red-600 hover:text-red-700 
-        dark:text-red-500 dark:hover:text-red-400"
+        dark:text-red-500 dark:hover:text-red-400 cursor-pointer"
       >
         <Trash2 className="mr-2 h-4 w-4" />
         Delete
       </DropdownMenuItem>
     </div>
-  )
-}
+  );
+};
 
-export default DeleteDialog
+export default DeleteDialog;

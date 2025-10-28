@@ -1,5 +1,10 @@
 "use client";
-import { newQuery, resetTrigger } from "@/store/api/chatSlice";
+import {
+  useSendSessionForImageMutation,
+  useSendSessionForTextMutation,
+} from "@/store/api/AIApi";
+import { resetTrigger, setContentType } from "@/store/api/chatSlice";
+import { AiResponse, ImageApiResponse } from "@/store/api/types/profile";
 import { AppDispatch, RootState } from "@/store/store";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -7,28 +12,28 @@ import { toast } from "react-toastify";
 import { v4 as uuidv4 } from "uuid";
 import ChatInput from "./ChatInput";
 import ChatMessages from "./ChatMessages";
-import CommonHeader from "./common/header/CommonHeader";
-
-import { useSendSessionMutation } from "@/store/api/AIApi";
-import imageIcon from "../../public/images/elements.svg";
-import imageGenerate from "../../public/images/gallery.svg";
-import query from "../../public/images/query.svg";
 import TypingLoader from "./reuseable/TypingLoader";
 
+export type Message =
+  | { role: "user"; contentBody: string }
+  | { role: "ai"; contentBody: AiResponse | ImageApiResponse };
 const ContentPage = () => {
   const dispatch: AppDispatch = useDispatch();
-  const { triggerNewQuery, sessionId: reduxSessionId } = useSelector(
-    (state: RootState) => state.chat
-  );
+  const {
+    triggerNewQuery,
+    sessionId: reduxSessionId,
+    contentType,
+  } = useSelector((state: RootState) => state.chat);
 
   const [sessionId, setSessionId] = useState<string>("");
-  const [messages, setMessages] = useState<
-    { role: "user" | "ai"; content: string }[]
-  >([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [sendSession, { isLoading: sendSessionLoading }] =
-    useSendSessionMutation();
+
+  const [sendSessionForText, { isLoading: isLoadingText }] =
+    useSendSessionForTextMutation();
+  const [sendSessionForImage, { isLoading: isLoadingImage }] =
+    useSendSessionForImageMutation();
 
   useEffect(() => {
     if (!reduxSessionId) setSessionId(uuidv4());
@@ -44,49 +49,55 @@ const ContentPage = () => {
     }
   }, [triggerNewQuery, dispatch]);
 
-  const handleNewQuery = () => {
-    setMessages([]);
-    setInputValue("");
-    setSessionId(uuidv4());
-    dispatch(newQuery());
-  };
+  // const handleNewQuery = () => {
+  //   dispatch(setContentType("text"));
+  //   setMessages([]);
+  //   setInputValue("");
+  //   setSessionId(uuidv4());
+  //   dispatch(newQuery());
+  //   dispatch(resetTrigger());
+  // };
 
-  const handleGenerate = async () => {
+  const handleTextGeneration = async () => {
+    dispatch(setContentType("text"));
     if (!inputValue.trim()) return;
 
-    const userMessage = { role: "user" as const, content: inputValue };
+    const userMessage: Message = { role: "user", contentBody: inputValue };
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
-    setIsGenerating(true);
-
-    const responseText = `Hello, ${inputValue}.`;
-
-    let i = 0;
-    let temp = "";
-    setMessages((prev) => [...prev, { role: "ai", content: "" }]);
-    const interval = setInterval(() => {
-      temp += responseText[i];
-      i++;
-      if (i >= responseText.length) {
-        clearInterval(interval);
-        setIsGenerating(false);
-      }
-      setMessages((prev) => {
-        const lastIdx = prev.length - 1;
-        return prev.map((msg, idx) =>
-          idx === lastIdx && msg.role === "ai" ? { ...msg, content: temp } : msg
-        );
-      });
-    }, 20);
-
     try {
-      await sendSession({
+      const res = await sendSessionForText({
         session_id: sessionId,
         prompt: inputValue,
-        contentType: "text",
+        contentType,
       }).unwrap();
+
+      const aiMessage: Message = { role: "ai", contentBody: res };
+      setMessages((prev) => [...prev, aiMessage]);
     } catch (err) {
-      console.log(err);
+      console.error("AI response error:", err);
+      toast.error("Failed to get AI response");
+    }
+  };
+  const handleImageGeneration = async () => {
+    dispatch(setContentType("image"));
+    if (!inputValue.trim()) return;
+
+    const userMessage: Message = { role: "user", contentBody: inputValue };
+    setMessages((prev) => [...prev, userMessage]);
+    setInputValue("");
+    try {
+      const res = await sendSessionForImage({
+        session_id: sessionId,
+        prompt: inputValue,
+        contentType,
+      }).unwrap();
+
+      const aiMessage: Message = { role: "ai", contentBody: res };
+
+      setMessages((prev) => [...prev, aiMessage]);
+    } catch (err) {
+      console.error("AI response error:", err);
     }
   };
 
@@ -95,34 +106,28 @@ const ContentPage = () => {
     toast.success("Copied to clipboard");
   };
 
+  const handleGenerate = () => {
+    if (isLoadingText || isLoadingImage) return;
+    setIsGenerating(true);
+    if (contentType === "text") handleTextGeneration();
+    else if (contentType === "image") handleImageGeneration();
+    setIsGenerating(false);
+  };
+
   return (
-    <div className="flex h-full flex-col items-center justify-center p-4 gap-6">
-      {messages.length === 0 ? (
-        <CommonHeader
-          size="2xl"
-          className="font-bold md:max-w-[500px] text-foreground !text-center"
-        >
-          Every perspective, every AI, one place.
-        </CommonHeader>
-      ) : isGenerating || sendSessionLoading ? (
-        <TypingLoader />
+    <div className="flex h-full flex-col items-center justify-center gap-4 overflow-hidden">
+      {isLoadingText || isLoadingImage ? (
+        <TypingLoader size={8} color="#999" text="Thinking" />
       ) : (
-        <ChatMessages
-          messages={messages}
-          handleCopy={handleCopy}
-          sessionId={sessionId}
-        />
+        <ChatMessages messages={messages} handleCopy={handleCopy} />
       )}
 
       <ChatInput
         inputValue={inputValue}
         setInputValue={setInputValue}
         handleGenerate={handleGenerate}
-        handleNewQuery={handleNewQuery}
         isGenerating={isGenerating}
-        imageIcon={imageIcon}
-        query={query}
-        imageGenerate={imageGenerate}
+        messages={messages}
       />
     </div>
   );

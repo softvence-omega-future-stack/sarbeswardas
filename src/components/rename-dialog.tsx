@@ -1,15 +1,29 @@
-"use client"
-import React, { useState } from "react"
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog"
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { Edit3 } from "lucide-react"
+"use client";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { useUpdateSessionMutation } from "@/store/api/AIApi";
+import { Edit3 } from "lucide-react";
+import { useState } from "react";
+import CommonButton from "./common/button/CommonButton";
+import ButtonWithLoading from "./common/custom/ButtonWithLoading";
 
-const RenameDialog = () => {
-  const [open, setOpen] = useState(false)
-  const [name, setName] = useState("")
+interface RenameDialogProps {
+  sessionId: string;
+}
+const RenameDialog: React.FC<RenameDialogProps> = ({ sessionId }) => {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+
+  const [updateSession, { isLoading }] = useUpdateSessionMutation();
+
+  const handleRenew = async () => {
+    try {
+      await updateSession({ sessionId: sessionId, newTitle: name });
+      setOpen(false);
+    } catch (error) {
+      console.error("Error updating session:", error);
+    }
+  };
 
   return (
     <div>
@@ -34,40 +48,37 @@ const RenameDialog = () => {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Enter chat name"
+              placeholder="Enter new chat name"
               className="w-full border rounded-md px-3 py-2 
               bg-gray-50 text-gray-800 
               dark:bg-[#161C24] dark:text-gray-200 dark:border-gray-700"
             />
           </div>
 
-          {/* Save Button */}
-          <button
-            onClick={() => {
-              console.log("Saved Name:", name)
-              setOpen(false)
-            }}
-            className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700"
+          <CommonButton
+            onClick={handleRenew}
+            disabled={isLoading}
+            className="w-fit "
           >
-            Save
-          </button>
+            {isLoading ? <ButtonWithLoading title="Saving..." /> : "Save"}
+          </CommonButton>
         </DialogContent>
       </Dialog>
 
       {/* Dropdown Item */}
       <DropdownMenuItem
         onClick={(e) => {
-          e.preventDefault()
-          setOpen(true)
+          e.preventDefault();
+          setOpen(true);
         }}
         className="flex items-center gap-2 text-green-600 hover:text-green-700 
-        dark:text-green-400 dark:hover:text-green-500"
+        dark:text-green-400 dark:hover:text-green-500 cursor-pointer"
       >
         <Edit3 className="mr-2 h-4 w-4" />
         Rename
       </DropdownMenuItem>
     </div>
-  )
-}
+  );
+};
 
-export default RenameDialog
+export default RenameDialog;

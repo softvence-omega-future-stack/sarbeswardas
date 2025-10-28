@@ -1,24 +1,18 @@
 import { baseApi } from "./baseApi";
 import {
   AiSendPrompt,
-  GetAllSessionResponse,
+  AllSessionResponse,
   PlanResponse,
   SessionHistoryResponse,
   SubscribePlanPayload,
   SubscribePlanResponse,
+  UpdateSessionPayload,
 } from "./types/auth";
-
-interface AiMessage {
-  id: string;
-  sessionId: string;
-  role: "user" | "assistant";
-  content: string;
-  createdAt: string;
-}
+import { AiResponse, ImageApiResponse } from "./types/profile";
 
 const AIApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    sendSession: builder.mutation<AiMessage, AiSendPrompt>({
+    sendSessionForText: builder.mutation<AiResponse, AiSendPrompt>({
       query: (data) => ({
         url: "/ai/send",
         method: "POST",
@@ -27,8 +21,17 @@ const AIApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Session"],
     }),
+    sendSessionForImage: builder.mutation<ImageApiResponse, AiSendPrompt>({
+      query: (data) => ({
+        url: "/ai/generate-image",
+        method: "POST",
+        body: data,
+        skipToast: true,
+      }),
+      invalidatesTags: ["Session"],
+    }),
 
-    getAllSession: builder.query<GetAllSessionResponse, void>({
+    getAllSession: builder.query<AllSessionResponse, void>({
       query: () => ({
         url: "/ai/sessions",
         method: "GET",
@@ -48,6 +51,14 @@ const AIApi = baseApi.injectEndpoints({
       query: (session_id) => ({
         url: `/ai/session/${session_id}`,
         method: "DELETE",
+      }),
+      invalidatesTags: ["Session"],
+    }),
+    updateSession: builder.mutation<void, UpdateSessionPayload>({
+      query: (data) => ({
+        url: `/ai/session/update-title`,
+        method: "PATCH",
+        body: data,
       }),
       invalidatesTags: ["Session"],
     }),
@@ -72,10 +83,13 @@ const AIApi = baseApi.injectEndpoints({
 });
 
 export const {
-  useSendSessionMutation,
+  useSendSessionForTextMutation,
+  useSendSessionForImageMutation,
   useGetAllSessionQuery,
   useGetSingleSessionQuery,
+  useLazyGetSingleSessionQuery,
   useDeleteSessionMutation,
+  useUpdateSessionMutation,
   useGetAllPlanQuery,
   useBuyPlanMutation,
 } = AIApi;

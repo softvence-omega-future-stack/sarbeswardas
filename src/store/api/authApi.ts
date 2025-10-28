@@ -2,6 +2,7 @@ import { baseApi } from "./baseApi";
 import {
   ChangePassword,
   ForgotPassword,
+  GoogleLogin,
   Login,
   LoginResponse,
   ResetPassword,
@@ -17,6 +18,13 @@ const authApi = baseApi.injectEndpoints({
     login: builder.mutation<LoginResponse, Login>({
       query: (credentials) => ({
         url: "/auth/login",
+        method: "POST",
+        body: credentials,
+      }),
+    }),
+    googleLogin: builder.mutation<LoginResponse, GoogleLogin>({
+      query: (credentials) => ({
+        url: "/auth/login-with-google",
         method: "POST",
         body: credentials,
       }),
@@ -72,4 +80,5 @@ export const {
   useResetPasswordMutation,
   useLogoutFromAllDevicesMutation,
   useDeleteAccountMutation,
+  useGoogleLoginMutation,
 } = authApi;

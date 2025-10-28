@@ -4,7 +4,7 @@ import AuthRedirect from "@/components/AuthRedirect";
 import CommonButton from "@/components/common/button/CommonButton";
 import ButtonWithLoading from "@/components/common/custom/ButtonWithLoading";
 import CommonHeader from "@/components/common/header/CommonHeader";
-import { useLoginMutation } from "@/store/api/authApi";
+import { useGoogleLoginMutation, useLoginMutation } from "@/store/api/authApi";
 import { setToken } from "@/store/api/AuthState";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FetchBaseQueryError } from "@reduxjs/toolkit/query";
@@ -16,6 +16,8 @@ import { FiEye, FiEyeOff } from "react-icons/fi";
 import { useDispatch } from "react-redux";
 import { z } from "zod";
 import googleIcon from "../../../../public/images/google-icon.png";
+
+import { auth, provider, signInWithPopup } from "@/firebase/firebase";
 
 // Zod schema
 const loginSchema = z.object({
@@ -47,6 +49,8 @@ const LoginPage = () => {
   });
 
   const [login, { isLoading }] = useLoginMutation();
+  const [googleLogin, { isLoading: isGoogleLoading }] =
+    useGoogleLoginMutation();
   const dispatch = useDispatch();
 
   const onSubmit = async (data: LoginFormInputs) => {
@@ -60,6 +64,38 @@ const LoginPage = () => {
     } catch (err) {
       const error = err as FetchBaseQueryError | { data?: { message: string } };
       console.log(error);
+    }
+  };
+
+  // google Login
+
+  const handleGoogleLogin = async () => {
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      if (!user.email) {
+        console.error("Google account has no email. Cannot login.");
+        return;
+      }
+
+      if (!user.displayName) {
+        return;
+      }
+      const body = {
+        email: user.email,
+        provider: "Google",
+        fullName: user.displayName,
+      };
+
+      console.log("body", body);
+      const response = await googleLogin(body).unwrap();
+
+      if (response.data.accessToken) {
+        dispatch(setToken(response.data.accessToken));
+      }
+    } catch (err) {
+      console.error("Google login error:", err);
     }
   };
 
@@ -196,22 +232,28 @@ const LoginPage = () => {
               </p>
 
               {/* Social Login */}
-              <div className="mt-8">
+              <div className="">
                 <p className="text-center text-gray-600 dark:text-gray-400 text-sm mb-3">
                   Or login with
                 </p>
                 <button
+                  onClick={handleGoogleLogin}
+                  disabled={isGoogleLoading}
                   type="button"
                   className="flex items-center justify-center gap-2 border rounded-lg w-full py-3 bg-white dark:bg-[#0B0D12] text-gray-900 dark:text-white hover:shadow-md transition cursor-pointer"
                 >
-                  <Image
-                    src={googleIcon}
-                    alt="Google"
-                    width={70}
-                    height={70}
-                    style={{ height: "auto" }}
-                    priority
-                  />
+                  {isGoogleLoading ? (
+                    <ButtonWithLoading title="Logging..." />
+                  ) : (
+                    <Image
+                      src={googleIcon}
+                      alt="Google"
+                      width={70}
+                      height={70}
+                      style={{ height: "auto" }}
+                      priority
+                    />
+                  )}
                 </button>
               </div>
             </form>

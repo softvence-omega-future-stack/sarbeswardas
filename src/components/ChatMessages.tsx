@@ -1,131 +1,226 @@
 "use client";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { formatAIResponse } from "@/lib/utils";
-import {
-  useGetAllSessionQuery,
-  useGetSingleSessionQuery,
-} from "@/store/api/AIApi";
-
-import {
-  Bot,
-  Copy,
-  FileText,
-  Share2,
-  ThumbsDown,
-  ThumbsUp,
-  User,
-} from "lucide-react";
-
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useGetProfileQuery } from "@/store/api/profileApi";
+import { User } from "lucide-react";
+import Image from "next/image";
+import { MdOutlineFileDownload } from "react-icons/md";
+// import userImage from "../../public/aiProm.png";
+// import userAvator from "../../public/user.jpg";
+import { formatAIResponse, getAdapterResponse } from "@/lib/utils";
+import { useLazyGetSingleSessionQuery } from "@/store/api/AIApi";
+import { AiResponse, ImageApiResponse } from "@/store/api/types/profile";
+import { RootState } from "@/store/store";
+import { useEffect, useState } from "react";
+import { IoCopyOutline } from "react-icons/io5";
+import { useSelector } from "react-redux";
+import CommonHeader from "./common/header/CommonHeader";
+import { Message } from "./ContentPage";
+import AITabs from "./reuseable/AITabs";
+export type adapterType = "openai" | "gemini" | "claude" | "perplexity";
 interface ChatMessagesProps {
-  messages: { role: "user" | "ai"; content: string }[];
+  messages: Message[];
   handleCopy: (text: string) => void;
-  sessionId: string;
 }
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({
   messages,
   handleCopy,
-  sessionId,
 }) => {
-  const { data: allSessions } = useGetAllSessionQuery();
+  const { data: profile } = useGetProfileQuery();
+  const [activeAdapter, setActiveAdapter] = useState<adapterType>("gemini");
 
-  const { data: singleSessionData, isLoading: singleSessionLoading } =
-    useGetSingleSessionQuery(sessionId, {
-      skip: !sessionId,
-    });
-  console.log("allSessions", allSessions);
-  console.log("singleSessionData", singleSessionData);
+  const isAiTextResponse = (
+    content: AiResponse | ImageApiResponse
+  ): content is AiResponse => {
+    return (
+      typeof (content as AiResponse).data?.response !== "undefined" &&
+      typeof (content as AiResponse).data?.response === "object"
+    );
+  };
 
-  const ramjan = formatAIResponse(
-    singleSessionData?.data.messages[0].response.selected.text || ""
+  const handleImageDownload = async (imageUrl: string, prompt: string) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${prompt.replace(/\s+/g, "_").slice(0, 30)}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading image:", error);
+    }
+  };
+
+  // Lazy query
+  const [fetchSingleSession, { data: singleSessionData }] =
+    useLazyGetSingleSessionQuery();
+
+  const selectedSessionId = useSelector(
+    (state: RootState) => state.chat.selectedSessionId
   );
 
-  console.log("singleSessionLoading", ramjan, singleSessionLoading);
+  useEffect(() => {
+    if (selectedSessionId) {
+      fetchSingleSession(selectedSessionId);
+    }
+  }, [selectedSessionId, fetchSingleSession]);
 
+  console.log("singleSessionData", singleSessionData?.data.messages);
   return (
-    <div className="w-full max-w-3xl border border-border rounded-xl whitespace-pre-wrap text-foreground leading-relaxed bg-background">
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
-        {messages.map((msg, idx) => (
-          <div
-            key={idx}
-            className={`flex gap-3 ${
-              msg.role === "user" ? "justify-end" : "justify-start"
-            }`}
-          >
-            {msg.role === "ai" && (
-              <Avatar className="h-8 w-8">
-                <AvatarFallback>
-                  <Bot className="h-4 w-4 cursor-pointer" />
-                </AvatarFallback>
-              </Avatar>
-            )}
+    <div className="w-full overflow-y-auto flex flex-col gap-3 md:gap-4 ">
+      {messages.map(
+        (message, i) =>
+          message.role === "user" && (
+            <div
+              key={i}
+              className="ml-auto max-w-[340px]  flex flex-col gap-3  "
+            >
+              <div className="  flex  gap-3 items-baseline-last">
+                <div className="bg-[#212B36]/20 p-6 rounded-t-3xl rounded-bl-3xl">
+                  <CommonHeader size="md" className="!text-[#F9FAFB] ">
+                    {message.contentBody}
+                  </CommonHeader>
+                </div>
+                <Avatar className="h-7 w-7 self-end">
+                  <AvatarImage
+                    src={profile?.data.profileImage || ""}
+                    alt="User profile"
+                  />
 
-            <div className="flex flex-col max-w-[75%]">
-              <div
-                className={`p-4 rounded-xl text-sm whitespace-pre-wrap ${
-                  msg.role === "user"
-                    ? "bg-green-600 text-white self-end"
-                    : "bg-muted border border-border text-foreground"
-                }`}
-              >
-                {msg.content}
+                  <AvatarFallback>
+                    <User className="h-4 w-4" />
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+            </div>
+          )
+      )}
+      {messages.map(
+        (message, i) =>
+          message.role === "ai" && (
+            <div
+              key={i}
+              className="max-w-[572px] bg-[#212B36]/20 p-6 rounded-3xl overflow-hidden"
+            >
+              {activeAdapter === "gemini" &&
+                isAiTextResponse(message.contentBody) && (
+                  <div>
+                    <CommonHeader size="md" className="!text-[#919EAB]">
+                      {formatAIResponse(
+                        message.contentBody.data.response.selected.text
+                      )}
+                    </CommonHeader>
+                  </div>
+                )}
+              {activeAdapter === "openai" &&
+                isAiTextResponse(message.contentBody) && (
+                  <div>
+                    <CommonHeader size="md" className="!text-[#919EAB]">
+                      {getAdapterResponse(
+                        message.contentBody.data.response.allResponses,
+                        activeAdapter
+                      )}
+                    </CommonHeader>
+                  </div>
+                )}
+              {activeAdapter === "claude" &&
+                isAiTextResponse(message.contentBody) && (
+                  <div>
+                    <CommonHeader size="md" className="!text-[#919EAB]">
+                      {getAdapterResponse(
+                        message.contentBody.data.response.allResponses,
+                        activeAdapter
+                      )}
+                    </CommonHeader>
+                  </div>
+                )}
+              {activeAdapter === "perplexity" &&
+                isAiTextResponse(message.contentBody) && (
+                  <div>
+                    <CommonHeader size="md" className="!text-[#919EAB]">
+                      {getAdapterResponse(
+                        message.contentBody.data.response.allResponses,
+                        activeAdapter
+                      )}
+                    </CommonHeader>
+                  </div>
+                )}
+
+              {isAiTextResponse(message.contentBody) && (
+                <hr className="border-t border-[#454F5B] my-4.5" />
+              )}
+
+              <div>
+                {!isAiTextResponse(message.contentBody) && (
+                  <Image
+                    width={524}
+                    height={350}
+                    src={
+                      (message.contentBody as ImageApiResponse).data.imageUrl
+                    }
+                    className="rounded-xl"
+                    alt="User profile"
+                  />
+                )}
               </div>
 
-              {msg.role === "ai" && (
-                <div className="flex justify-between md:flex-row flex-col gap-3 items-center mt-3">
-                  <div className="flex gap-3">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="rounded-lg border border-border cursor-pointer"
+              <div className="flex justify-between items-center pt-4.5 ">
+                {isAiTextResponse(message.contentBody) && (
+                  <AITabs
+                    activeAdapter={activeAdapter}
+                    setActiveAdapter={setActiveAdapter}
+                  />
+                )}
+                <div className={" w-fit ml-auto"}>
+                  {isAiTextResponse(message.contentBody) && (
+                    <span
+                      onClick={() =>
+                        handleCopy(
+                          activeAdapter === "gemini"
+                            ? formatAIResponse(
+                                (message.contentBody as AiResponse).data
+                                  .response.selected.text
+                              )
+                            : getAdapterResponse(
+                                (message.contentBody as AiResponse).data
+                                  .response.allResponses,
+                                activeAdapter
+                              )
+                        )
+                      }
+                      className="bg-[#000000] p-1.5 rounded text-base cursor-pointer"
                     >
-                      <ThumbsUp className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="rounded-lg border border-border cursor-pointer"
-                    >
-                      <ThumbsDown className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="rounded-lg border border-border cursor-pointer"
-                      onClick={() => handleCopy(msg.content)}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="rounded-lg border border-border cursor-pointer"
-                    >
-                      <Share2 className="h-4 w-4" />
-                    </Button>
+                      <IoCopyOutline />
+                    </span>
+                  )}
+
+                  <div className="w-full ml-auto">
+                    {!isAiTextResponse(message.contentBody) && (
+                      <div
+                        onClick={() =>
+                          handleImageDownload(
+                            (message.contentBody as ImageApiResponse).data
+                              .imageUrl,
+                            message.contentBody.data.prompt
+                          )
+                        }
+                        className={`bg-[#000000] p-1.5 rounded text-base cursor-pointer " `}
+                      >
+                        <MdOutlineFileDownload className="size-4" />
+                      </div>
+                    )}
                   </div>
-
-                  <Button
-                    variant="outline"
-                    className="text-green-600 border-green-600 dark:text-green-500 dark:border-green-500 hover:bg-green-100 dark:hover:bg-green-950/20 cursor-pointer"
-                  >
-                    Show All Responses <FileText className="ml-2 h-4 w-4" />
-                  </Button>
                 </div>
-              )}
+              </div>
             </div>
-
-            {msg.role === "user" && (
-              <Avatar className="h-8 w-8">
-                <AvatarFallback>
-                  <User className="h-4 w-4" />
-                </AvatarFallback>
-              </Avatar>
-            )}
-          </div>
-        ))}
-      </div>
+          )
+      )}
     </div>
   );
 };

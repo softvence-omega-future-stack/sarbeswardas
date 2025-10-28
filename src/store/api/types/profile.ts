@@ -16,3 +16,41 @@ export interface GetProfileResponse {
   meta: null;
   data: UserProfile;
 }
+
+//  for text
+export interface AiResponse {
+  data: SessionData;
+}
+
+//  for image
+export interface ImageApiResponse {
+  success: boolean;
+  data: {
+    sessionId: string;
+    prompt: string;
+    imageUrl: string;
+    adapter: string;
+  };
+}
+
+export interface SessionData {
+  sessionId: string;
+  sequenceNumber: number;
+  prompt: string;
+  response: ResponseData;
+}
+
+export interface ResponseData {
+  selected: SelectedResponse;
+  allResponses: AdapterResponse[];
+}
+
+export interface SelectedResponse {
+  adapter: string;
+  text: string;
+}
+
+export interface AdapterResponse {
+  adapter: "openai" | "gemini" | "claude" | "perplexity";
+  text: string;
+}

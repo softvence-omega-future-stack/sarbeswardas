@@ -1,4 +1,5 @@
 import { removeToken } from "@/store/api/AuthState";
+import { AdapterResponse } from "@/store/api/types/profile";
 import { AppDispatch } from "@/store/store";
 import { clsx, type ClassValue } from "clsx";
 import { Router } from "next/router";
@@ -45,3 +46,11 @@ export function formatAIResponse(text: string): string {
       .trim()
   );
 }
+
+export const getAdapterResponse = (
+  allResponses: AdapterResponse[],
+  adapter: string
+) => {
+  const response = allResponses.find((resp) => resp.adapter === adapter);
+  return response?.text || "";
+};
