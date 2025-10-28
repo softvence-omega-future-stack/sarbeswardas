@@ -74,14 +74,14 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   console.log("singleSessionData", singleSessionData?.data.messages);
   return (
     <div className="w-full overflow-y-auto flex flex-col gap-3 md:gap-4 ">
-      {messages.map(
-        (message, i) =>
-          message.role === "user" && (
+      {messages.map((message, i) => {
+        if (message.role === "user") {
+          return (
             <div
               key={i}
               className="ml-auto max-w-[340px]  flex flex-col gap-3  "
             >
-              <div className="  flex  gap-3 items-baseline-last">
+              <div className="flex gap-3 items-baseline-last">
                 <div className="bg-[#212B36]/20 p-6 rounded-t-3xl rounded-bl-3xl">
                   <CommonHeader size="md" className="!text-[#F9FAFB] ">
                     {message.contentBody}
@@ -92,18 +92,17 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
                     src={profile?.data.profileImage || ""}
                     alt="User profile"
                   />
-
                   <AvatarFallback>
                     <User className="h-4 w-4" />
                   </AvatarFallback>
                 </Avatar>
               </div>
             </div>
-          )
-      )}
-      {messages.map(
-        (message, i) =>
-          message.role === "ai" && (
+          );
+        }
+
+        if (message.role === "ai") {
+          return (
             <div
               key={i}
               className="max-w-[572px] bg-[#212B36]/20 p-6 rounded-3xl overflow-hidden"
@@ -118,29 +117,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
                     </CommonHeader>
                   </div>
                 )}
-              {activeAdapter === "openai" &&
-                isAiTextResponse(message.contentBody) && (
-                  <div>
-                    <CommonHeader size="md" className="!text-[#919EAB]">
-                      {getAdapterResponse(
-                        message.contentBody.data.response.allResponses,
-                        activeAdapter
-                      )}
-                    </CommonHeader>
-                  </div>
-                )}
-              {activeAdapter === "claude" &&
-                isAiTextResponse(message.contentBody) && (
-                  <div>
-                    <CommonHeader size="md" className="!text-[#919EAB]">
-                      {getAdapterResponse(
-                        message.contentBody.data.response.allResponses,
-                        activeAdapter
-                      )}
-                    </CommonHeader>
-                  </div>
-                )}
-              {activeAdapter === "perplexity" &&
+              {["openai", "claude", "perplexity"].includes(activeAdapter) &&
                 isAiTextResponse(message.contentBody) && (
                   <div>
                     <CommonHeader size="md" className="!text-[#919EAB]">
@@ -156,19 +133,15 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
                 <hr className="border-t border-[#454F5B] my-4.5" />
               )}
 
-              <div>
-                {!isAiTextResponse(message.contentBody) && (
-                  <Image
-                    width={524}
-                    height={350}
-                    src={
-                      (message.contentBody as ImageApiResponse).data.imageUrl
-                    }
-                    className="rounded-xl"
-                    alt="User profile"
-                  />
-                )}
-              </div>
+              {!isAiTextResponse(message.contentBody) && (
+                <Image
+                  width={524}
+                  height={350}
+                  src={(message.contentBody as ImageApiResponse).data.imageUrl}
+                  className="rounded-xl"
+                  alt="User profile"
+                />
+              )}
 
               <div className="flex justify-between items-center pt-4.5 ">
                 {isAiTextResponse(message.contentBody) && (
@@ -177,7 +150,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
                     setActiveAdapter={setActiveAdapter}
                   />
                 )}
-                <div className={" w-fit ml-auto"}>
+                <div className="w-fit ml-auto">
                   {isAiTextResponse(message.contentBody) && (
                     <span
                       onClick={() =>
@@ -194,33 +167,34 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
                               )
                         )
                       }
-                      className="bg-[#000000] p-1.5 rounded text-base cursor-pointer"
+                      className=" p-1.5 rounded text-base cursor-pointer"
                     >
                       <IoCopyOutline />
                     </span>
                   )}
 
-                  <div className="w-full ml-auto">
-                    {!isAiTextResponse(message.contentBody) && (
-                      <div
-                        onClick={() =>
-                          handleImageDownload(
-                            (message.contentBody as ImageApiResponse).data
-                              .imageUrl,
-                            message.contentBody.data.prompt
-                          )
-                        }
-                        className={`bg-[#000000] p-1.5 rounded text-base cursor-pointer " `}
-                      >
-                        <MdOutlineFileDownload className="size-4" />
-                      </div>
-                    )}
-                  </div>
+                  {!isAiTextResponse(message.contentBody) && (
+                    <div
+                      onClick={() =>
+                        handleImageDownload(
+                          (message.contentBody as ImageApiResponse).data
+                            .imageUrl,
+                          message.contentBody.data.prompt
+                        )
+                      }
+                      className="bg-[#000000] p-1.5 rounded text-base cursor-pointer"
+                    >
+                      <MdOutlineFileDownload className="size-4" />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
-          )
-      )}
+          );
+        }
+
+        return null;
+      })}
     </div>
   );
 };

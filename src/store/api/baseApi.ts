@@ -33,18 +33,21 @@ interface BaseQueryExtraOptions {
 
 // Fully typed wrapper for toast notifications
 const baseQueryWithToast = async (
-  args: string | FetchArgs,
+  args: string | (FetchArgs & { skipToast?: boolean }),
   api: BaseQueryApi,
   extraOptions: BaseQueryExtraOptions = {}
 ) => {
+  // If skipToast is inside args, read it
+  const skipToast =
+    extraOptions.skipToast ??
+    (typeof args === "object" ? args.skipToast : false);
+
   const result = await baseQuery(args, api, extraOptions);
 
   const method =
     typeof args === "object" && "method" in args
       ? args.method?.toUpperCase()
       : "GET";
-
-  const skipToast = extraOptions.skipToast ?? false;
 
   if (
     !skipToast &&
